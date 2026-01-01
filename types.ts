@@ -15,7 +15,8 @@ export enum GameStatus {
   IDLE = 'IDLE',
   PLAYING = 'PLAYING',
   PAUSED = 'PAUSED',
-  GAME_OVER = 'GAME_OVER'
+  GAME_OVER = 'GAME_OVER',
+  LEVEL_UP = 'LEVEL_UP'
 }
 
 export interface GameState {
@@ -25,4 +26,5 @@ export interface GameState {
   status: GameStatus;
   score: number;
   highScore: number;
+  stage: number;
 }

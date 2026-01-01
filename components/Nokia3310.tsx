@@ -10,12 +10,12 @@ interface Nokia3310Props {
 
 export const Nokia3310: React.FC<Nokia3310Props> = ({ children, onControl, status }) => {
   return (
-    <div className="relative w-[380px] h-[780px] bg-[#1e2a4a] rounded-[60px] border-[12px] border-zinc-900 shadow-2xl flex flex-col items-center pt-10 pb-14 select-none transition-all duration-500">
+    <div className="relative w-[380px] h-[820px] bg-[#1e2a4a] rounded-[60px] border-[12px] border-zinc-900 shadow-2xl flex flex-col items-center pt-10 pb-14 select-none transition-all duration-500">
       {/* Speaker grill */}
       <div className="w-20 h-2.5 bg-zinc-900 rounded-full mb-10 shadow-inner"></div>
 
-      {/* Screen area - slightly larger to match Android proportions */}
-      <div className="w-[300px] h-[220px] bg-zinc-800 rounded-2xl p-5 flex items-center justify-center shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] border-4 border-zinc-700">
+      {/* Screen area - Adjusted height to 250px to match 84:70 aspect ratio (1.2) */}
+      <div className="w-[300px] h-[250px] bg-zinc-800 rounded-2xl p-5 flex items-center justify-center shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] border-4 border-zinc-700">
         <div className="w-full h-full relative overflow-hidden bg-[#94a171]">
           {children}
         </div>
