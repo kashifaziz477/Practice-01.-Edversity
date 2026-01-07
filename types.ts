@@ -16,7 +16,13 @@ export enum GameStatus {
   PLAYING = 'PLAYING',
   PAUSED = 'PAUSED',
   GAME_OVER = 'GAME_OVER',
-  LEVEL_UP = 'LEVEL_UP'
+  LEVEL_UP = 'LEVEL_UP',
+  MENU = 'MENU'
+}
+
+export enum GameMode {
+  CLASSIC = 'CLASSIC',
+  STAGES = 'STAGES'
 }
 
 export interface GameState {
@@ -27,4 +33,8 @@ export interface GameState {
   score: number;
   highScore: number;
   stage: number;
+  mode: GameMode;
+  menuOption: number;
+  menuContext: 'MAIN' | 'STAGE_SELECT';
+  snakeHue: number; // For dynamic snake color
 }
