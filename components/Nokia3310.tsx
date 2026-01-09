@@ -78,7 +78,14 @@ export const Nokia3310: React.FC<Nokia3310Props> = ({ children, onControl, statu
           <div></div>
           
           <ControlButton icon="◄" onClick={() => onControl(Direction.LEFT)} />
-          <div className="w-20 h-14 bg-zinc-800 rounded-xl shadow-lg border-b-4 border-zinc-950 flex items-center justify-center text-zinc-600 font-bold text-xl">5</div>
+          {/* Functional "5" button as OK/Enter */}
+          <button 
+            onClick={() => onControl('RESET')}
+            className="w-20 h-14 bg-zinc-800 rounded-xl shadow-lg border-b-4 border-zinc-950 active:translate-y-0.5 active:border-b-0 transition-all flex items-center justify-center text-zinc-400 font-bold text-xl hover:text-zinc-200"
+            title="OK / Select"
+          >
+            5
+          </button>
           <ControlButton icon="►" onClick={() => onControl(Direction.RIGHT)} />
           
           <div></div>

@@ -3,12 +3,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { Nokia3310 } from './components/Nokia3310';
 import { LCDScreen } from './components/LCDScreen';
-import { Direction, GameStatus, Point, GameState, GameMode } from './types';
+import { Direction, GameStatus, Point, GameState, GameMode, Difficulty } from './types';
 import { 
   SCREEN_WIDTH, SCREEN_HEIGHT, 
   INITIAL_SPEED, MIN_SPEED, 
   STAGE_OBSTACLES, POINTS_PER_LEVEL, MAX_STAGES,
-  GRID_WIDTH, GRID_HEIGHT, NOKIA_PALETTE
+  GRID_WIDTH, GRID_HEIGHT, NOKIA_PALETTE,
+  DIFFICULTY_SPEEDS
 } from './constants';
 
 // Audio decoding helpers as per Gemini API requirements
@@ -55,6 +56,7 @@ const App: React.FC = () => {
     highScore: parseInt(localStorage.getItem('snake_highscore') || '0', 10),
     stage: 1,
     mode: GameMode.CLASSIC,
+    difficulty: Difficulty.MEDIUM,
     menuOption: 0,
     menuContext: 'MAIN',
     snakeHue: 0
@@ -120,7 +122,6 @@ const App: React.FC = () => {
       source.connect(audioContextRef.current.destination);
       source.start();
     } else {
-      // Fallback to classic beep if API hasn't returned yet
       const osc = audioContextRef.current.createOscillator();
       const gain = audioContextRef.current.createGain();
       osc.type = 'square';
@@ -133,7 +134,6 @@ const App: React.FC = () => {
       osc.stop(audioContextRef.current.currentTime + 0.1);
     }
 
-    // Pre-fetch next 2 letters to ensure availability
     const nextLetter1 = String.fromCharCode(65 + ((index + 1) % 26));
     const nextLetter2 = String.fromCharCode(65 + ((index + 2) % 26));
     fetchAlphabetSound(nextLetter1);
@@ -196,7 +196,6 @@ const App: React.FC = () => {
       snakeHue: 0
     }));
 
-    // Start pre-fetching alphabet
     fetchAlphabetSound('A');
     fetchAlphabetSound('B');
   }, [spawnFood, gameState.mode, gameState.stage, fetchAlphabetSound]);
@@ -247,9 +246,7 @@ const App: React.FC = () => {
       const newSnake = [newHead, ...prev.snake];
       
       if (newHead.x === prev.food.x && newHead.y === prev.food.y) {
-        // Play alphabet sound based on total balls eaten (score / 10)
         playAlphabetSound(prev.score / 10);
-        
         const newScore = prev.score + 10;
         const nextHue = (prev.snakeHue + 1) % NOKIA_PALETTE.SNAKE_COLORS.length;
 
@@ -292,10 +289,21 @@ const App: React.FC = () => {
         if (dir === 'UP') return { ...prev, menuOption: Math.max(0, prev.menuOption - 1) };
         if (dir === 'DOWN') return { ...prev, menuOption: Math.min(1, prev.menuOption + 1) };
         if (dir === 'SELECT') {
-          if (prev.menuOption === 0) { // Classic
-            return { ...prev, mode: GameMode.CLASSIC, stage: 1, status: GameStatus.IDLE }; 
-          } else { // Stages select
-            return { ...prev, menuContext: 'STAGE_SELECT', menuOption: 0 };
+          const nextMode = prev.menuOption === 0 ? GameMode.CLASSIC : GameMode.STAGES;
+          return { ...prev, menuContext: 'DIFFICULTY_SELECT', menuOption: 1, mode: nextMode }; // Default Medium
+        }
+      }
+
+      if (prev.menuContext === 'DIFFICULTY_SELECT') {
+        if (dir === 'UP') return { ...prev, menuOption: Math.max(0, prev.menuOption - 1) };
+        if (dir === 'DOWN') return { ...prev, menuOption: Math.min(2, prev.menuOption + 1) };
+        if (dir === 'SELECT') {
+          const difficulties = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD];
+          const selectedDiff = difficulties[prev.menuOption];
+          if (prev.mode === GameMode.CLASSIC) {
+            return { ...prev, difficulty: selectedDiff, stage: 1, status: GameStatus.IDLE };
+          } else {
+            return { ...prev, difficulty: selectedDiff, menuContext: 'STAGE_SELECT', menuOption: 0 };
           }
         }
       }
@@ -314,7 +322,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'm', 'M'].includes(e.key)) {
+      if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'm', 'M', '5'].includes(e.key)) {
         e.preventDefault();
       }
 
@@ -324,7 +332,7 @@ const App: React.FC = () => {
       }
 
       if (gameState.status === GameStatus.IDLE || gameState.status === GameStatus.GAME_OVER) {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === '5') {
            if (gameState.status === GameStatus.IDLE) {
               resetGame();
            } else {
@@ -338,12 +346,12 @@ const App: React.FC = () => {
       if (gameState.status === GameStatus.MENU) {
         if (e.key === 'ArrowUp') handleMenuNav('UP');
         if (e.key === 'ArrowDown') handleMenuNav('DOWN');
-        if (e.key === 'Enter' || e.key === ' ') handleMenuNav('SELECT');
+        if (e.key === 'Enter' || e.key === ' ' || e.key === '5') handleMenuNav('SELECT');
         return;
       }
 
       if (gameState.status === GameStatus.LEVEL_UP) {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === '5') {
           const initialSnake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
           directionRef.current = Direction.RIGHT;
           setGameState(prev => ({
@@ -376,16 +384,17 @@ const App: React.FC = () => {
   }, [gameState.status, resetGame, togglePause, spawnFood, handleMenuNav]);
 
   const tick = useCallback((time: number) => {
-    const stageDifficulty = (gameState.stage - 1) * 15;
+    const baseSpeed = DIFFICULTY_SPEEDS[gameState.difficulty];
+    const stageDifficulty = (gameState.stage - 1) * 10;
     const scoreDifficulty = Math.floor((gameState.score % POINTS_PER_LEVEL) / 10) * 2; 
-    const speed = Math.max(MIN_SPEED, INITIAL_SPEED - stageDifficulty - scoreDifficulty);
+    const speed = Math.max(MIN_SPEED, baseSpeed - stageDifficulty - scoreDifficulty);
     
     if (time - lastUpdateRef.current > speed) {
       moveSnake();
       lastUpdateRef.current = time;
     }
     gameLoopRef.current = requestAnimationFrame(tick);
-  }, [moveSnake, gameState.score, gameState.stage]);
+  }, [moveSnake, gameState.score, gameState.stage, gameState.difficulty]);
 
   useEffect(() => {
     if (gameState.status === GameStatus.PLAYING) {

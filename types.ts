@@ -25,6 +25,12 @@ export enum GameMode {
   STAGES = 'STAGES'
 }
 
+export enum Difficulty {
+  EASY = 'EASY',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD'
+}
+
 export interface GameState {
   snake: Point[];
   food: Point;
@@ -34,7 +40,8 @@ export interface GameState {
   highScore: number;
   stage: number;
   mode: GameMode;
+  difficulty: Difficulty;
   menuOption: number;
-  menuContext: 'MAIN' | 'STAGE_SELECT';
-  snakeHue: number; // For dynamic snake color
+  menuContext: 'MAIN' | 'STAGE_SELECT' | 'DIFFICULTY_SELECT';
+  snakeHue: number;
 }
